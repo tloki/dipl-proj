@@ -7,6 +7,42 @@ from parse_rectangle_data import *
 import os
 import sys
 
+
+def bench(tracker_create, video_path, gt_path, reset_iou=0.5):
+    # init a tracker
+    tracker = tracker_create()
+
+    # load a video
+    video = cv2.VideoCapture(video_path)
+
+    # check if video is opened
+    if not video.isOpened():
+        raise RuntimeError("Cannot open video {}".format(video_path))
+
+    # Read first frame.
+    ok, frame = video.read()
+    if not ok:
+        raise RuntimeError("Cannot read video {}".format(video_path))
+
+    # read current ground truth file
+    ground_truth_boxes = parse(ground_truth_file)
+    n_frames = len(ground_truth_boxes)
+
+    # fetch first bbox
+    bbox = ground_truth_boxes.pop(0)
+
+    # initialize tracker
+    tracker.init(frame, bbox)
+
+    # initialize output values
+    gt_reinit_count = 0
+    curr_time = time.time()
+    iou = 0
+    ious = []
+    tracked_bboxes = [bbox]
+
+
+
 done = [('TrackerBoosting', './TB-50/Basketball/')]
 noimpl = ('TrackerGOTURN')
 videoDone = ['./TB-50/Bird1/', './TB-50/Biker/', './TB-50/BlurBody/', './TB-50/BlurCar2/',
@@ -85,7 +121,7 @@ for directory, video_path, ground_truth_file in benchmark_sequences:
         # initialize tracker
         tracker.init(frame, bbox)
 
-        # reset values
+        # initialize output values
         gt_reinit_count = 0
         curr_time = time.time()
         iou = 0
@@ -94,14 +130,11 @@ for directory, video_path, ground_truth_file in benchmark_sequences:
 
         # for all other frames
         while True:
-            # if SLOW:
-            #     time.sleep(0.1)
 
             # Read a new frame
             ok, frame = video.read()
             if not ok:
-                # raise RuntimeError("Unable to open video: {}".format(video_path))
-                break # end of video
+                break  # end of video
 
             # Update tracker
             ok, bbox = tracker.update(frame)
@@ -119,13 +152,6 @@ for directory, video_path, ground_truth_file in benchmark_sequences:
             # if tracker is not relevant any more, reset it to ground truth value:
             if bb_intersection_over_union(bbox, bbox_gt) <= CUTOFF_IOU:
                 ok = False
-                # gt_reinit_count += 1
-                # print("\t\t{}.reset to ground truth!".format(gt_reinit_count))
-                # tracked_bboxes.pop(0)
-                # tracker = tracker_create()
-                # bbox = bbox_gt
-                # ok = tracker.init(frame, bbox)
-                # tracked_bboxes.append(bbox)
 
             # Draw bounding box
             if ok:
@@ -135,10 +161,10 @@ for directory, video_path, ground_truth_file in benchmark_sequences:
                 cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
             else:
                 # Tracking failure
-                # cv2.putText(frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255),
+                cv2.putText(frame, "Tracker Reset", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
                 #             2)
                 gt_reinit_count += 1
-                print("\t\t{}.reset to ground truth!".format(gt_reinit_count))
+                # print("\t\t{}.reset to ground truth!".format(gt_reinit_count))
                 tracked_bboxes.pop(0)
                 tracker = tracker_create()
                 bbox = bbox_gt

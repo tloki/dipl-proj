@@ -32,11 +32,15 @@ def tracking_algorithms():
     return result_dict
 
 
-if __name__ == '__main__':
-
-    print("Python version: {}.{}.{}\nOpenCV version: {}".format(sys.version_info[0],
+def info():
+    print("Python version: {}.{}.{}\nOpenCV version: {}\n".format(sys.version_info[0],
                                                                 sys.version_info[1],
                                                                 sys.version_info[2],
                                                                 cv2.__version__))
 
-    print("Available tracking algorithms: {}".format(", ".join(list(tracking_algorithms().keys()))))
+    print("Available tracking algorithms:\n{}".format(", ".join(list(tracking_algorithms().keys()))))
+
+
+if __name__ == '__main__':
+
+    info()
